@@ -25,7 +25,7 @@ def process_folder(folder_path):
 
 # ==== 用法 ====
 if __name__ == '__main__':
-    target_folder = '/home/user/mydisk/3DGS_code/CED_Transformer/data/val_out'  # 替换为你的文件夹路径
+    target_folder = './data/val_out'  # 替换为你的文件夹路径
     process_folder(target_folder)
 
 
