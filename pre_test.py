@@ -8,7 +8,8 @@ from model.Transformer import TransformerCED
 BATCH_SIZE = 16
 MAX_LEN = 512
 SRC_VOCAB_SIZE = 50
-TRG_VOCAB_SIZE = 10
+TRG_VOCAB_SIZE = 2
+# TRG_VOCAB_SIZE = 10
 D_MODEL = 128
 NUM_LAYERS = 2
 NUM_HEADS = 8
@@ -17,7 +18,7 @@ DROPOUT = 0.2
 EMB_DIM = 16
 TEXT_DIM = 4
 OTHER_DIM = 8
-MODEL_PATH = "./output/model/transformer/v7/epoch100.pth"
+MODEL_PATH = "./output/model/preTransformer/v1/epoch50.pth"
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -31,7 +32,7 @@ model.load_state_dict(torch.load(MODEL_PATH, map_location=device)['model_state_d
 model = model.to(device)
 model.eval()
 
-# 输出格式为：内容**预测标签
+# 输出格式为：原格式
 def predict_and_add_labels(folder_path, output_path):
     os.makedirs(output_path, exist_ok=True)
     files = [f for f in os.listdir(folder_path) if f.endswith(".txt")]
@@ -68,16 +69,16 @@ def predict_and_add_labels(folder_path, output_path):
                     if idx < len(original_lines):
                         fields = original_lines[idx].split(",")
                         text = fields[-1].strip()
-                        all_lines.append(f"{text} **{label}")
+                        # all_lines.append(f"{text} **{label}")
+                        all_lines.append(f"{original_lines[idx]}")
                     idx += 1
 
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write('\n'.join(all_lines) + '\n')
 
 # === 配置路径 ===
-# input_folder = "./data/val_out"      # 替换为你的输入路径
-input_folder = "./output/data/pre_txt_val"      # 替换为你的输入路径
-output_folder = "./output/data/labeled_txt_new"  # 输出路径
+input_folder = "./data/train"      # 替换为你的输入路径
+output_folder = "./output/data/pre_txt_train"  # 输出路径
 
 if __name__ == "__main__":
     predict_and_add_labels(input_folder, output_folder)

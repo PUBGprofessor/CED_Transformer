@@ -12,19 +12,20 @@ from model.Transformer import TransformerCED
 BATCH_SIZE = 16
 MAX_LEN = 512
 SRC_VOCAB_SIZE = 50
-TRG_VOCAB_SIZE = 10
+# TRG_VOCAB_SIZE = 10
+TRG_VOCAB_SIZE = 2 # 目录只有两类：正文（0）和目录（1）
 D_MODEL = 128
 NUM_LAYERS = 2
 NUM_HEADS = 8
 D_FF = 128
 DROPOUT = 0.2
 LR = 2e-4
-EPOCHS = 100
+EPOCHS = 50
 WEIGHT_0 = 0.2
 EMB_DIM = 16
 TEXT_DIM = 4
 OTHER_DIM = 8
-ckpt_path = r"./output/model/transformer/v7"
+ckpt_path = r"./output/model/preTransformer/v2"
 
 os.makedirs(ckpt_path, exist_ok=True)
 
@@ -42,7 +43,8 @@ def evaluate(model, dataloader, device):
     with torch.no_grad():
         for inputs, labels, mask in dataloader:
             inputs = inputs.to(device)
-            labels = labels.to(device)
+            labels = torch.tensor(labels > 0, dtype=torch.long).to(device)  # 将标签转换为 long 类型
+            # labels = labels.to(device)  
             mask = mask.to(device)
 
             outputs = model(inputs, mask)  # [B, L, C]
@@ -80,13 +82,11 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 start_time = time.time() 
 
 # 2. 加载数据
-raw_dataset = Dataset("./output/data/pre_txt_train", device=device)
-# raw_dataset = Dataset("./data/train", device=device)
+raw_dataset = Dataset("./data/train", device=device)
 processed_dataset = TransformerDataset(raw_dataset, max_len=MAX_LEN)
 dataloader = DataLoader(processed_dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=collate_fn)
 # 6. 加载测试集
-test_raw_dataset = Dataset("./output/data/pre_txt_val", device=device)
-# test_raw_dataset = Dataset("./data/val", device=device)
+test_raw_dataset = Dataset("./data/val", device=device)
 test_dataset = TransformerDataset(test_raw_dataset, max_len=MAX_LEN)
 test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=collate_fn)
 
@@ -109,7 +109,7 @@ def get_class_weights(num_classes=10, device='cuda'):
     return weights.to(device)
 
 weights = get_class_weights(TRG_VOCAB_SIZE, device)
-criterion = nn.CrossEntropyLoss(weight=weights, ignore_index=-100)
+criterion = nn.CrossEntropyLoss(weight=torch.tensor([0.05, 0.95], device=device), ignore_index=-100) # 把目录预测为正文损失更大
 optimizer = optim.Adam(model.parameters(), lr=LR)
 
 # 5. 训练循环
@@ -126,7 +126,7 @@ for epoch in range(epochs):
         # mask:   [B, L]
 
         inputs = inputs.to(device)
-        labels = labels.to(device)
+        labels = torch.tensor(labels > 0, dtype=torch.long, device=device) # 将标签转换为 long 类型
         mask = mask.to(device)
 
         optimizer.zero_grad()
@@ -149,7 +149,7 @@ for epoch in range(epochs):
     epoch_end = time.time()
     epoch_time = epoch_end - epoch_start
 
-    print(f"Epoch {epoch + 1}/{epochs}, Loss: {avg_loss:.4f}, Acc: {acc[0]:.4f}, 目录召回率: {acc[2]:.4f}, 正文召回率: {acc[1]:.4f}, Time: {epoch_time:.2f}s")
+    print(f"Epoch {epoch + 1}/{epochs}, Loss: {avg_loss:.4f}, Acc: {acc[0]:.4f}, 目录召回率: {acc[2]:.4f}, 正文去除率: {acc[1]:.4f}, Time: {epoch_time:.2f}s")
     if (epoch + 1) % 5 == 0:
         torch.save({
             'model_state_dict': model.state_dict(),
