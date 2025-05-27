@@ -9,4 +9,7 @@ output/
 
 data/
 
-data.zip
+data_old/
+
+script/
+>>>>>>> 26350df (modify .gitignore)
